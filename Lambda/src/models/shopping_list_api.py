@@ -4,8 +4,7 @@ from ._base import AlexaBase
 
 
 class ShoppingListAPIListItem(AlexaBase):
-    list_id: str
-    item_id: str
+    id: str
     value: str
     status: ListItemState = ListItemState.active
 
@@ -14,4 +13,5 @@ class ShoppingListAPIListItem(AlexaBase):
 
 
 class ShoppingListAPIListItems(AlexaBase):
+    list_id: str
     list_items: list[ShoppingListAPIListItem]

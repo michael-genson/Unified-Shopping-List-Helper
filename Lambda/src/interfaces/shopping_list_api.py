@@ -1,4 +1,3 @@
-from ask_sdk_model.services.list_management.alexa_list_item import AlexaListItem
 from requests import HTTPError
 
 from ..clients.shopping_list_api import ShoppingListAPIClient
