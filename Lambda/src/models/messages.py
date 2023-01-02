@@ -17,13 +17,18 @@ class ObjectType(Enum):
     list_item = "list_item"
 
 
-class Message(BaseModel):
-    source: str
-    event_id: str
-
+class MessageRequest(BaseModel):
     operation: Operation
     object_type: ObjectType
     object_data: Optional[dict[str, Any]]
+
+    metadata: Optional[dict[str, Any]]
+
+
+class Message(BaseModel):
+    source: str
+    event_id: str
+    requests: list[MessageRequest]
 
     metadata: Optional[dict[str, Any]]
     send_callback_response: Optional[bool]
@@ -32,7 +37,7 @@ class Message(BaseModel):
 class MessageResponseBody(BaseModel):
     success: bool
     detail: Optional[str]
-    data: Optional[dict[str, Any]]
+    data: Optional[list[dict[str, Any]]]
 
 
 class MessageResponse(BaseModel):

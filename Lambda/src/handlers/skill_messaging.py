@@ -58,67 +58,81 @@ def route_message(input: HandlerInput) -> Response:
         success=False, detail="invalid operation + object_type parameters"
     )
 
-    response: Optional[Union[Error, object]] = None
-    response_data: Optional[dict[str, Any]] = None
-
     try:
-        if msg.operation == Operation.read_all:
-            if msg.object_type == ObjectType.list:
-                response = list_management.read_all_lists()
-                response_data = response.to_dict()
+        responses: list[dict[str, Any]] = []
+        for msg_request in msg.requests:
+            response: Optional[Union[Error, object]] = None
+            response_data: Optional[dict[str, Any]] = None
 
-        elif msg.operation == Operation.read:
-            if msg.object_type == ObjectType.list:
-                response = list_management.read_list(ReadList.parse_obj(msg.object_data))
-                response_data = response.to_dict()
-
-            elif msg.object_type == ObjectType.list_item:
-                response = list_management.read_list_item(
-                    ReadListItemMetadata.parse_obj(msg.object_data)
-                )
-                response_data = response.to_dict()
-
-        else:
-            if msg.object_type == ObjectType.list:
-                if msg.operation == Operation.create:
-                    response = list_management.create_list(CreateList.parse_obj(msg.object_data))
+            if msg_request.operation == Operation.read_all:
+                if msg_request.object_type == ObjectType.list:
+                    response = list_management.read_all_lists()
                     response_data = response.to_dict()
 
-                elif msg.operation == Operation.update:
-                    response = list_management.update_list(UpdateList.parse_obj(msg.object_data))
-
-                    if response:
-                        response_data = response.to_dict()
-
-                elif msg.operation == Operation.delete:
-                    response = list_management.delete_list(DeleteList.parse_obj(msg.object_data))
-
-                    if response:
-                        response_data = response.to_dict()
-
-            elif msg.object_type == ObjectType.list_item:
-                if msg.operation == Operation.create:
-                    response = list_management.create_list_item(
-                        CreateListItem.parse_obj(msg.object_data)
+            elif msg_request.operation == Operation.read:
+                if msg_request.object_type == ObjectType.list:
+                    response = list_management.read_list(
+                        ReadList.parse_obj(msg_request.object_data)
                     )
-
                     response_data = response.to_dict()
 
-                elif msg.operation == Operation.update:
-                    response = list_management.update_list_item(
-                        UpdateListItem.parse_obj(msg.object_data)
+                elif msg_request.object_type == ObjectType.list_item:
+                    response = list_management.read_list_item(
+                        ReadListItemMetadata.parse_obj(msg_request.object_data)
                     )
+                    response_data = response.to_dict()
 
-                    if response:
+            else:
+                if msg_request.object_type == ObjectType.list:
+                    if msg_request.operation == Operation.create:
+                        response = list_management.create_list(
+                            CreateList.parse_obj(msg_request.object_data)
+                        )
                         response_data = response.to_dict()
 
-                elif msg.operation == Operation.delete:
-                    response = list_management.delete_list_item(
-                        DeleteListItem.parse_obj(msg.object_data)
-                    )
+                    elif msg_request.operation == Operation.update:
+                        response = list_management.update_list(
+                            UpdateList.parse_obj(msg_request.object_data)
+                        )
 
-                    if response:
+                        if response:
+                            response_data = response.to_dict()
+
+                    elif msg_request.operation == Operation.delete:
+                        response = list_management.delete_list(
+                            DeleteList.parse_obj(msg_request.object_data)
+                        )
+
+                        if response:
+                            response_data = response.to_dict()
+
+                elif msg_request.object_type == ObjectType.list_item:
+                    if msg_request.operation == Operation.create:
+                        response = list_management.create_list_item(
+                            CreateListItem.parse_obj(msg_request.object_data)
+                        )
+
                         response_data = response.to_dict()
+
+                    elif msg_request.operation == Operation.update:
+                        response = list_management.update_list_item(
+                            UpdateListItem.parse_obj(msg_request.object_data)
+                        )
+
+                        if response:
+                            response_data = response.to_dict()
+
+                    elif msg_request.operation == Operation.delete:
+                        response = list_management.delete_list_item(
+                            DeleteListItem.parse_obj(msg_request.object_data)
+                        )
+
+                        if response:
+                            response_data = response.to_dict()
+
+            if response_data:
+                response_data["metadata"] = msg_request.metadata
+                responses.append(response_data)
 
     except ServiceException:
         response_body = MessageResponseBody(
@@ -129,7 +143,7 @@ def route_message(input: HandlerInput) -> Response:
     else:
         response_body = MessageResponseBody(
             success=not isinstance(response, Error),
-            data=response_data,
+            data=responses,
         )
 
     message_response = MessageResponse(source_message=msg, body=response_body)

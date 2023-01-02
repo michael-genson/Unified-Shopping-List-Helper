@@ -81,7 +81,6 @@ def skill_disabled(input: HandlerInput):
 
 @sb.request_handler(is_request_type("LaunchRequest"))
 def launch_request_handler(input: HandlerInput) -> Response:
-    print("hi")
     paragraphs = [
         (
             "Welcome to the Unified Shopping List Helper. This skill is designed to integrate the Alexa Shopping List, "
