@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Alexa skill to sync new shopping list items over to the Unified Shopping List
+
+Parameters:
+  SkillLambdaName:
+    Type: String
+
+  AlexaSkillId:
+    Type: String
+
+  ApiBaseUrl:
+    Type: String
+
+  CallbackDDBTableName:
+    Type: String
+
+Resources:
+  SkillLambdaHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Ref SkillLambdaName
+      CodeUri: ../Lambda
+      Handler: src.skill.handler
+      Timeout: 60
+      Environment:
+        Variables:
+          apiBaseUrl: !Ref ApiBaseUrl
+
+      Policies:
+        # DDB resources not deployed via SAM
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CallbackDDBTableName
+
+      Runtime: python3.9
+      Events:
+        AlexaSkillEvent:
+          Type: AlexaSkill
+          SkillId: !Ref AlexaSkillId
