@@ -17,7 +17,7 @@ from ..models.lists import (
     DeleteList,
     DeleteListItem,
     ReadList,
-    ReadListItemMetadata,
+    ReadListItem,
     UpdateList,
     UpdateListItem,
 )
@@ -66,7 +66,7 @@ class ListManagement:
 
         return None
 
-    def read_list_item(self, list_item: ReadListItemMetadata) -> Union[AlexaListItem, Error]:
+    def read_list_item(self, list_item: ReadListItem) -> Union[AlexaListItem, Error]:
         response = self.client.get_list_item(list_id=list_item.list_id, item_id=list_item.item_id)
         if isinstance(response, Error):
             return response

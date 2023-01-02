@@ -20,7 +20,7 @@ from ..models.lists import (
     DeleteList,
     DeleteListItem,
     ReadList,
-    ReadListItemMetadata,
+    ReadListItem,
     UpdateList,
     UpdateListItem,
 )
@@ -78,7 +78,7 @@ def route_message(input: HandlerInput) -> Response:
 
                 elif msg_request.object_type == ObjectType.list_item:
                     response = list_management.read_list_item(
-                        ReadListItemMetadata.parse_obj(msg_request.object_data)
+                        ReadListItem.parse_obj(msg_request.object_data)
                     )
                     response_data = response.to_dict()
 

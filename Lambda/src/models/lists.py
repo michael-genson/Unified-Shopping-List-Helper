@@ -20,10 +20,6 @@ class ReadList(AlexaBase):
     state: ListState = ListState.active
 
 
-class ReadListMetadata(AlexaBase):
-    list_id: str
-
-
 class CreateList(AlexaBase):
     name: str
     state: ListState = ListState.active
@@ -47,7 +43,7 @@ class DeleteList(AlexaBase):
 
 
 ### List Item ###
-class ReadListItemMetadata(AlexaBase):
+class ReadListItem(AlexaBase):
     list_id: str
     item_id: str
 
@@ -75,8 +71,3 @@ class UpdateListItem(AlexaBase):
 class DeleteListItem(AlexaBase):
     list_id: str
     item_id: str
-
-
-class DeleteListItems(AlexaBase):
-    list_id: str
-    item_ids: list[str]
