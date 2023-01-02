@@ -18,8 +18,9 @@
         "--network=host"
     ],
     "mounts": [
-        // mount ask profile to workspace .ask directory
-        "source=${localWorkspaceFolder}/.askconfig,target=/root/.ask,type=bind,consistency=cached"
+        // mount AWS credentials to workspace
+        "source=${localWorkspaceFolder}/deploy/credentials/ask_cli_config,target=/root/.ask/cli_config,type=bind,consistency=cached",
+        "source=${localWorkspaceFolder}/deploy/credentials/aws_credentials,target=/root/.aws/credentials,type=bind,consistency=cached"
     ],
     // Configure tool-specific properties.
     "customizations": {
