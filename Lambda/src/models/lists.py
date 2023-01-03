@@ -30,9 +30,9 @@ class CreateList(AlexaBase):
 
 class UpdateList(AlexaBase):
     list_id: str
-    name: Optional[str] = None
-    state: Optional[ListState] = None
-    version: Optional[int] = None
+    name: str
+    state: ListState = ListState.active
+    version: int
 
     def request(self) -> UpdateListRequest:
         return UpdateListRequest(name=self.name, state=self.state, version=self.version)
@@ -60,9 +60,9 @@ class CreateListItem(AlexaBase):
 class UpdateListItem(AlexaBase):
     list_id: str
     item_id: str
-    value: Optional[str] = None
-    status: Optional[ListItemState] = None
-    version: Optional[int] = None
+    value: str
+    status: ListItemState = ListItemState.active
+    version: int
 
     def request(self) -> UpdateListItemRequest:
         return UpdateListItemRequest(value=self.value, status=self.status, version=self.version)
