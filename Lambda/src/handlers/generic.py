@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import logging
 
 import requests
 from ask_sdk_core.handler_input import HandlerInput
@@ -32,13 +33,15 @@ def is_cancel_or_stop_request(input: HandlerInput) -> bool:
 
 @sb.request_handler(can_handle_func=is_request_type("AlexaSkillEvent.SkillAccountLinked"))
 def account_linked(input: HandlerInput):
-    print("Received new account link event; updating user id")
+    logging.info("Received new account link event; updating user id")
 
     user_id = get_user_id(input)
     access_token = get_account_linking_access_token(input)
 
     if not user_id:
         raise ValueError("Missing user id")
+
+    logging.info(f"user {str(user_id)}")
 
     if not access_token:
         raise ValueError("Missing access token")
@@ -55,12 +58,14 @@ def account_linked(input: HandlerInput):
 
 @sb.request_handler(can_handle_func=is_request_type("AlexaSkillEvent.SkillDisabled"))
 def skill_disabled(input: HandlerInput):
-    print("User has disabled this skill; sending notification to central API")
+    logging.info("User has disabled this skill; sending notification to central API")
 
     user_id = get_user_id(input)
 
     if not user_id:
         raise ValueError("Missing user id")
+
+    logging.info(f"user {str(user_id)}")
 
     url = USL_BASE_URL + SHOPPING_LIST_API_UNLINK_ACCOUNT_ROUTE
     hmac_signature = hmac.new(
@@ -109,18 +114,14 @@ def launch_request_handler(input: HandlerInput) -> Response:
 
     speech_text = "\n\n".join(paragraphs)
 
-    input.response_builder.speak(speech_text).set_card(
-        SimpleCard("Welcome!", speech_text)
-    ).set_should_end_session(True)
+    input.response_builder.speak(speech_text).set_card(SimpleCard("Welcome!", speech_text)).set_should_end_session(True)
     return input.response_builder.response
 
 
 @sb.request_handler(is_intent_name("AddToShoppingList"))
 def redirect_shopping_list_request(input: HandlerInput) -> Response:
     speech_text = "To add something to your shopping list, please exit this skill and use your normal Alexa shopping list. Please try again after exiting this skill."
-    input.response_builder.speak(speech_text).set_card(
-        SimpleCard("Help", speech_text)
-    ).set_should_end_session(True)
+    input.response_builder.speak(speech_text).set_card(SimpleCard("Help", speech_text)).set_should_end_session(True)
     return input.response_builder.response
 
 
@@ -140,9 +141,7 @@ def help_intent_handler(input: HandlerInput) -> Response:
 
     speech_text += "If you're still having trouble, make sure you've linked your Alexa shopping list in your Unified Shopping List account."
 
-    input.response_builder.speak(speech_text).set_card(
-        SimpleCard("Help", speech_text)
-    ).set_should_end_session(True)
+    input.response_builder.speak(speech_text).set_card(SimpleCard("Help", speech_text)).set_should_end_session(True)
     return input.response_builder.response
 
 
@@ -150,16 +149,14 @@ def help_intent_handler(input: HandlerInput) -> Response:
 def cancel_and_stop_intent_handler(input: HandlerInput) -> Response:
     speech_text = ""
 
-    input.response_builder.speak(speech_text).set_card(
-        SimpleCard("Goodbye!", speech_text)
-    ).set_should_end_session(True)
+    input.response_builder.speak(speech_text).set_card(SimpleCard("Goodbye!", speech_text)).set_should_end_session(True)
     return input.response_builder.response
 
 
 @sb.exception_handler(can_handle_func=lambda i, e: True)  # type: ignore
 def all_exception_handler(input: HandlerInput, ex: Exception) -> Response:
-    print("unable to fully process input")
-    print(f"{type(ex).__name__}: {ex}")
+    logging.info("unable to fully process input")
+    logging.info(f"{type(ex).__name__}: {ex}")
 
     speech = "Sorry, I didn't quite catch it. Can you please say it again?"
     input.response_builder.speak(speech).ask(speech)

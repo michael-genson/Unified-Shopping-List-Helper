@@ -2,10 +2,10 @@ from requests import HTTPError
 
 from ..clients.shopping_list_api import ShoppingListAPIClient
 from ..config import (
-    SHOPPING_LIST_API_CREATE_LIST_ITEMS_ROUTE,
+    SHOPPING_LIST_API_POST_ITEM_EVENTS_ROUTE,
     SHOPPING_LIST_API_VALIDATION_ROUTE,
 )
-from ..models.shopping_list_api import ShoppingListAPIListItems
+from ..models.shopping_list_api import ShoppingListAPIListEvent
 
 
 class ShoppingListAPIInterface:
@@ -14,7 +14,7 @@ class ShoppingListAPIInterface:
 
     @property
     def is_valid(self) -> bool:
-        """Call the Shopping List API and check if the configuration is valid"""
+        """Call the Unified Shopping List API and check if the configuration is valid"""
 
         try:
             self._client.get(SHOPPING_LIST_API_VALIDATION_ROUTE)
@@ -23,11 +23,10 @@ class ShoppingListAPIInterface:
         except HTTPError:
             return False
 
-    def create_shopping_list_items(
-        self, items: ShoppingListAPIListItems
-    ) -> ShoppingListAPIListItems:
-        response = self._client.post(
-            SHOPPING_LIST_API_CREATE_LIST_ITEMS_ROUTE, payload=items.dict()
-        )
+    def post_list_item_event(self, list_event: ShoppingListAPIListEvent) -> None:
+        """Post a list item event to the Unified Shopping List API"""
 
-        return ShoppingListAPIListItems.parse_obj(response.json())
+        list_event_payload = list_event.dict()
+        list_event_payload["timestamp"] = list_event_payload["timestamp"].isoformat()
+
+        self._client.post(SHOPPING_LIST_API_POST_ITEM_EVENTS_ROUTE, payload=list_event_payload)

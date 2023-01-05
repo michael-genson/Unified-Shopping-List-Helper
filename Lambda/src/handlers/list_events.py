@@ -1,5 +1,7 @@
+import logging
 import time
-from typing import cast
+from datetime import datetime
+from typing import Union, cast
 
 from ask_sdk_core.handler_input import HandlerInput
 from ask_sdk_core.utils import is_request_type
@@ -10,107 +12,87 @@ from ask_sdk_model.services.list_management.list_item_state import ListItemState
 from ask_sdk_model.services.list_management.list_items_created_event_request import (
     ListItemsCreatedEventRequest,
 )
+from ask_sdk_model.services.list_management.list_items_deleted_event_request import (
+    ListItemsDeletedEventRequest,
+)
+from ask_sdk_model.services.list_management.list_items_updated_event_request import (
+    ListItemsUpdatedEventRequest,
+)
 
 from ..interfaces.list_management import ListManagement
 from ..interfaces.shopping_list_api import ShoppingListAPIInterface
-from ..models.lists import ReadList, UpdateListItem
+from ..models.lists import ReadList
 from ..models.messages import Message, MessageRequest, ObjectType, Operation
-from ..models.shopping_list_api import ShoppingListAPIListItem, ShoppingListAPIListItems
+from ..models.shopping_list_api import ShoppingListAPIListEvent
 from ..skill import USL_BASE_URL, sb
 
-# TODO: handle archived and deleted lists
+# TODO: handle archived and deleted lists (unlink list maps in USL)
 
 
-@sb.request_handler(can_handle_func=is_request_type("AlexaHouseholdListEvent.ItemsCreated"))
-def list_items_created(input: HandlerInput) -> Response:
+def is_list_item_event(input: HandlerInput) -> bool:
+    return any(
+        [
+            is_request_type("AlexaHouseholdListEvent.ItemsCreated")(input),
+            is_request_type("AlexaHouseholdListEvent.ItemsUpdated")(input),
+            is_request_type("AlexaHouseholdListEvent.ItemsDeleted")(input),
+        ]
+    )
+
+
+@sb.request_handler(can_handle_func=is_list_item_event)
+def handle_list_item_event(input: HandlerInput) -> Response:
     list_management_client = input.service_client_factory.get_list_management_service()
     list_management = ListManagement(list_management_client)
 
+    operation: Operation
+    request: Union[ListItemsCreatedEventRequest, ListItemsUpdatedEventRequest, ListItemsDeletedEventRequest]
+    if is_request_type("AlexaHouseholdListEvent.ItemsCreated")(input):
+        operation = Operation.create
+        request = cast(ListItemsCreatedEventRequest, input.request_envelope.request)
+
+    elif is_request_type("AlexaHouseholdListEvent.ItemsUpdated")(input):
+        operation = Operation.update
+        request = cast(ListItemsUpdatedEventRequest, input.request_envelope.request)
+
+    elif is_request_type("AlexaHouseholdListEvent.ItemsDeleted")(input):
+        operation = Operation.delete
+        request = cast(ListItemsDeletedEventRequest, input.request_envelope.request)
+
+    else:
+        raise Exception("unsupported event; is the request handler configured correctly?")
+
+    logging.info(f"received list item {operation.value} event {request.request_id}")
+
     request = cast(ListItemsCreatedEventRequest, input.request_envelope.request)
-    print(f"received list items created event {request.request_id}")
+    access_token = get_account_linking_access_token(input)
 
     if not request.body or not request.body.list_item_ids:
         raise ValueError("Request body and list item ids should not be null")
 
-    # fetch the list and all its items
-    time.sleep(1)  # give Alexa some time to process multiple events in quick-succession
-    read_list = ReadList(list_id=request.body.list_id)
-    alexa_list = list_management.read_list(read_list)
-
-    if isinstance(alexa_list, Error):
-        print("There was an error when trying to read the Alexa list", alexa_list)
-        return input.response_builder.response
-
-    # if we don't have any of the created items, we end early
-    if not alexa_list.items:
-        print("no new items found")
-        return input.response_builder.response
-
-    # only handle active items that actually got created
-    alexa_list.items = [
-        item
-        for item in alexa_list.items
-        if item.id
-        and item.id in request.body.list_item_ids
-        and item.status == ListItemState.active
-    ]
-
-    # if we filtered out all items, end early
-    if not alexa_list.items:
-        print("no new items found")
+    if not access_token:
+        logging.info("User is not linked to USL; aborting")
         return input.response_builder.response
 
     # send the items to the shopping list API
-    if shopping_list_api_auth_token := get_account_linking_access_token(input):
-        shopping_list_api_client = ShoppingListAPIInterface(
-            USL_BASE_URL, str(shopping_list_api_auth_token)
-        )
+    list_event = ShoppingListAPIListEvent(
+        request_id=request.request_id,
+        timestamp=request.timestamp or datetime.now(),
+        operation=operation,
+        object_type=ObjectType.list_item,
+        list_id=request.body.list_id,
+        list_item_ids=request.body.list_item_ids,
+    )
 
-        list_items = [
-            ShoppingListAPIListItem(
-                id=item.id,
-                value=item.value,
-                status=item.status,
-            )
-            for item in alexa_list.items
-        ]
-
-        list_item_collection = ShoppingListAPIListItems(
-            list_id=alexa_list.list_id, list_items=list_items
-        )
-        created_item_collection = shopping_list_api_client.create_shopping_list_items(
-            list_item_collection
-        )
-
-        created_item_ids = [item.id for item in created_item_collection.list_items]
-
-        # check off the items that were created
-        for item in alexa_list.items:
-            if item.id not in created_item_ids:
-                continue
-
-            try:
-                checked_item = UpdateListItem(
-                    list_id=alexa_list.list_id,
-                    item_id=item.id,
-                    value=item.value,
-                    status=ListItemState.completed,
-                    version=item.version,
-                )
-
-                list_management.update_list_item(checked_item)
-
-            except Exception as e:
-                continue
+    shopping_list_api_client = ShoppingListAPIInterface(USL_BASE_URL, str(access_token))
+    shopping_list_api_client.post_list_item_event(list_event)
 
     response = Message(
         source="Alexa",
         event_id=request.request_id,
         requests=[
             MessageRequest(
-                operation=Operation.create,
+                operation=operation,
                 object_type=ObjectType.list_item,
-                object_data=alexa_list.to_dict(),
             )
         ],
     )

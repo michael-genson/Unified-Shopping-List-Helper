@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any, Optional, Union, cast
 
 from ask_sdk_core.handler_input import HandlerInput
@@ -51,7 +52,7 @@ def route_message(input: HandlerInput) -> Response:
         return input.response_builder.response
 
     msg = Message.parse_obj(message_data)
-    print("message received:", msg)
+    logging.info(f"received message {msg.event_id}")
 
     # default response if there is no operation + object_type match
     response_body: MessageResponseBody = MessageResponseBody(
@@ -71,61 +72,45 @@ def route_message(input: HandlerInput) -> Response:
 
             elif msg_request.operation == Operation.read:
                 if msg_request.object_type == ObjectType.list:
-                    response = list_management.read_list(
-                        ReadList.parse_obj(msg_request.object_data)
-                    )
+                    response = list_management.read_list(ReadList.parse_obj(msg_request.object_data))
                     response_data = response.to_dict()
 
                 elif msg_request.object_type == ObjectType.list_item:
-                    response = list_management.read_list_item(
-                        ReadListItem.parse_obj(msg_request.object_data)
-                    )
+                    response = list_management.read_list_item(ReadListItem.parse_obj(msg_request.object_data))
                     response_data = response.to_dict()
 
             else:
                 if msg_request.object_type == ObjectType.list:
                     if msg_request.operation == Operation.create:
-                        response = list_management.create_list(
-                            CreateList.parse_obj(msg_request.object_data)
-                        )
+                        response = list_management.create_list(CreateList.parse_obj(msg_request.object_data))
                         response_data = response.to_dict()
 
                     elif msg_request.operation == Operation.update:
-                        response = list_management.update_list(
-                            UpdateList.parse_obj(msg_request.object_data)
-                        )
+                        response = list_management.update_list(UpdateList.parse_obj(msg_request.object_data))
 
                         if response:
                             response_data = response.to_dict()
 
                     elif msg_request.operation == Operation.delete:
-                        response = list_management.delete_list(
-                            DeleteList.parse_obj(msg_request.object_data)
-                        )
+                        response = list_management.delete_list(DeleteList.parse_obj(msg_request.object_data))
 
                         if response:
                             response_data = response.to_dict()
 
                 elif msg_request.object_type == ObjectType.list_item:
                     if msg_request.operation == Operation.create:
-                        response = list_management.create_list_item(
-                            CreateListItem.parse_obj(msg_request.object_data)
-                        )
+                        response = list_management.create_list_item(CreateListItem.parse_obj(msg_request.object_data))
 
                         response_data = response.to_dict()
 
                     elif msg_request.operation == Operation.update:
-                        response = list_management.update_list_item(
-                            UpdateListItem.parse_obj(msg_request.object_data)
-                        )
+                        response = list_management.update_list_item(UpdateListItem.parse_obj(msg_request.object_data))
 
                         if response:
                             response_data = response.to_dict()
 
                     elif msg_request.operation == Operation.delete:
-                        response = list_management.delete_list_item(
-                            DeleteListItem.parse_obj(msg_request.object_data)
-                        )
+                        response = list_management.delete_list_item(DeleteListItem.parse_obj(msg_request.object_data))
 
                         if response:
                             response_data = response.to_dict()
@@ -158,6 +143,5 @@ def route_message(input: HandlerInput) -> Response:
 
         event_db.put(callback.dict(exclude_none=True), CALLBACK_EVENT_EXPIRATION)
 
-    print("response:", message_response)
     input.response_builder.set_api_response(message_response.dict(exclude_none=True))
     return input.response_builder.response
