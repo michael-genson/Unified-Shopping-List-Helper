@@ -1,3 +1,7 @@
+[Amazon ended support for shopping list integrations](https://developer.amazon.com/en-US/docs/alexa/custom-skills/access-the-alexa-shopping-and-to-do-lists.html), so this skill is no longer functional. Thanks for all of the support while it lasted.
+
+---
+
 # <img src="./Lambda/src/static/images/favicon.png" width="25px" height="auto"> Unified Shopping List Helper
 The Unified Shopping List Helper is an Alexa skill designed to integrate Alexa with the [Unified Shopping List](https://shopping-lists.genson.dev). Linking this skill allows you to link any of your Alexa lists (such as your shopping list) to your Unified Shopping List. You can [enable the skill and link your account from the skill page](https://www.amazon.com/dp/B0BR8KW2WL).
 
